@@ -44,8 +44,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("#modalBg").addEventListener("click", (e) => { if (e.target.id === "modalBg") closeModal(); });
 
   // load kategori
-  try { state.kategori = await DB.getKategori(true); } catch (e) { console.error(e); }
+  let katErr = null;
+  try { state.kategori = await DB.getKategori(true); } catch (e) { console.error(e); katErr = e; }
   fillKategoriSelect();
+  if (!CONFIG.IS_DEMO && (katErr || state.kategori.length === 0)) {
+    $("#f_kategori").innerHTML = '<option value="">⚠️ Database belum siap — jalankan supabase-schema.sql</option>';
+    setTimeout(() => toast("Database Supabase belum siap. Jalankan file supabase-schema.sql di SQL Editor dulu.", "err"), 600);
+  }
 
   // restore session
   state.user = DB.getUser();
