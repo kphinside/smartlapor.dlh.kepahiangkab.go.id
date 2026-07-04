@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QR & Poster Sosialisasi — DLH Smart Lapor</title>
+<link rel="icon" type="image/png" href="logo_small.png" />
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>
+  :root{--navy:#1F3864;--teal:#1F7A6D;--green:#e9f5ef;--line:#e5e7eb;--muted:#6b7280}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,Arial,sans-serif;background:#f4f7f6;color:#1f2937}
+  .bar{background:linear-gradient(135deg,var(--navy),var(--teal));color:#fff;padding:16px}
+  .bar .w{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:12px}
+  .bar img{width:44px;height:44px;background:#fff;border-radius:9px;padding:2px}
+  .bar h1{font-size:18px} .bar p{font-size:12px;opacity:.85}
+  .w{max-width:900px;margin:0 auto;padding:20px 16px}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  label{font-weight:600;font-size:14px;display:block;margin-bottom:6px}
+  input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-size:14px}
+  input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(31,122,109,.12)}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .btn{padding:11px 18px;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:14px}
+  .btn-p{background:var(--teal);color:#fff}.btn-g{background:#eef2f1}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:8px}
+
+  /* ---- POSTER (A4) ---- */
+  .poster{width:210mm;min-height:297mm;margin:0 auto;background:#fff;position:relative;
+    display:flex;flex-direction:column;align-items:center;text-align:center;
+    box-shadow:0 4px 24px rgba(0,0,0,.15);overflow:hidden}
+  .poster .top{width:100%;background:linear-gradient(135deg,var(--navy),var(--teal));color:#fff;padding:30mm 12mm 16mm;position:relative}
+  .poster .top img{width:34mm;height:34mm;background:#fff;border-radius:14px;padding:3px;margin-bottom:8mm}
+  .poster .inst{font-size:8mm;font-weight:800;letter-spacing:2px}
+  .poster .top h2{font-size:13mm;font-weight:800;margin:2mm 0}
+  .poster .top p{font-size:5mm;opacity:.9}
+  .poster .qrbox{background:#fff;border:3px solid var(--teal);border-radius:16px;padding:8mm;margin:14mm auto 6mm}
+  .poster .qrbox canvas,.poster .qrbox img{display:block}
+  .poster .url{font-size:4.6mm;color:var(--teal);font-weight:700;word-break:break-all;padding:0 14mm}
+  .poster .steps{display:flex;justify-content:center;gap:8mm;margin:12mm 0;flex-wrap:wrap;padding:0 12mm}
+  .poster .step{max-width:44mm}
+  .poster .step .c{width:16mm;height:16mm;border-radius:50%;background:var(--green);color:var(--teal);
+    font-size:8mm;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 4mm}
+  .poster .step .t{font-size:4mm;font-weight:600;color:#374151}
+  .poster .foot{margin-top:auto;width:100%;background:var(--green);color:var(--navy);padding:8mm;font-size:4.4mm;font-weight:700}
+  .poster .foot small{display:block;font-weight:500;color:var(--muted);margin-top:2mm;font-size:3.4mm}
+
+  @media print{
+    body{background:#fff}
+    .bar,.controls,.hint{display:none!important}
+    .w{max-width:none;padding:0;margin:0}
+    .poster{box-shadow:none;margin:0}
+    @page{size:A4;margin:0}
+  }
+</style>
+</head>
+<body>
+<div class="bar"><div class="w"><img src="logo.png" alt="logo" onerror="this.style.display='none'"><div><h1>QR & Poster Sosialisasi</h1><p>DLH Smart Lapor — Kabupaten Kepahiang</p></div></div></div>
+
+<div class="w">
+  <div class="panel controls">
+    <label>Alamat (URL) Aplikasi</label>
+    <input id="url" value="https://smartlapor.dlh.kepahiangkab.go.id" />
+    <div class="hint">Ganti dengan alamat GitHub Pages Anda (mis. https://username.github.io/smart-lapor/) atau sub-domain resmi dari Kominfo, lalu klik <b>Perbarui</b>.</div>
+    <div class="btns">
+      <button class="btn btn-p" onclick="render()">🔄 Perbarui QR</button>
+      <button class="btn btn-g" onclick="downloadQR()">⬇️ Unduh QR (PNG)</button>
+      <button class="btn btn-g" onclick="window.print()">🖨️ Cetak / Simpan Poster PDF</button>
+    </div>
+  </div>
+
+  <!-- Poster siap cetak -->
+  <div class="poster" id="poster">
+    <div class="top">
+      <img src="logo.png" alt="logo" onerror="this.style.display='none'">
+      <div class="inst">SCAN &amp; LAPOR</div>
+      <h2>DLH SMART LAPOR</h2>
+      <p>Laporkan Masalah Sampah &amp; Lingkungan di Kabupaten Kepahiang</p>
+    </div>
+
+    <div class="qrbox" id="qrbox"></div>
+    <div class="url" id="urlText"></div>
+
+    <div class="steps">
+      <div class="step"><div class="c">1</div><div class="t">Scan QR dengan kamera HP</div></div>
+      <div class="step"><div class="c">2</div><div class="t">Isi jenis masalah, foto &amp; lokasi otomatis</div></div>
+      <div class="step"><div class="c">3</div><div class="t">Kirim &amp; pantau lewat nomor tiket</div></div>
+    </div>
+
+    <div class="foot">
+      Bersama Wujudkan Kepahiang yang Bersih, Hijau &amp; Berkelanjutan 🌿
+      <small>Dinas Lingkungan Hidup Kabupaten Kepahiang</small>
+    </div>
+  </div>
+</div>
+
+<script>
+  let qr;
+  function render(){
+    const url = document.getElementById('url').value.trim();
+    document.getElementById('urlText').textContent = url;
+    document.getElementById('qrbox').innerHTML = '';
+    qr = new QRCode(document.getElementById('qrbox'), {
+      text: url, width: 300, height: 300,
+      colorDark: '#1F3864', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  }
+  function downloadQR(){
+    const cv = document.querySelector('#qrbox canvas');
+    const img = document.querySelector('#qrbox img');
+    let dataUrl;
+    if (cv) dataUrl = cv.toDataURL('image/png');
+    else if (img) dataUrl = img.src;
+    else return;
+    const a = document.createElement('a');
+    a.href = dataUrl; a.download = 'qr_smartlapor.png'; a.click();
+  }
+  render();
+</script>
+</body>
+</html>

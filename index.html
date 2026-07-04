@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DLH Smart Lapor — Kabupaten Kepahiang</title>
+<link rel="icon" type="image/png" href="logo_small.png" />
+<meta name="description" content="Kanal pelaporan persampahan & lingkungan hidup Dinas Lingkungan Hidup Kabupaten Kepahiang." />
+
+<!-- Leaflet (peta) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Chart.js (grafik) -->
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<!-- Supabase (dipakai hanya di MODE PRODUKSI) -->
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+  :root{
+    --navy:#1F3864; --teal:#1F7A6D; --teal-d:#155a50; --green:#e9f5ef; --green2:#d5ecdf;
+    --blue:#2E75B6; --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --bg:#f4f7f6;
+    --baru:#2563eb; --verif:#7c3aed; --proses:#d97706; --selesai:#16a34a; --tolak:#dc2626;
+    --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:var(--teal);text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+
+  /* Header */
+  header.top{background:linear-gradient(135deg,var(--navy),var(--teal));color:#fff;box-shadow:var(--shadow);position:sticky;top:0;z-index:1000}
+  .top .wrap{display:flex;align-items:center;gap:12px;padding:12px 16px}
+  .logo{width:46px;height:46px;border-radius:10px;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 auto;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+  .logo img{width:100%;height:100%;object-fit:contain}
+  .brand h1{font-size:17px;font-weight:700;letter-spacing:.2px}
+  .brand p{font-size:11.5px;opacity:.85}
+  .top .spacer{flex:1}
+  .badge-mode{font-size:10px;background:rgba(255,255,255,.2);padding:3px 8px;border-radius:20px;font-weight:600;white-space:nowrap}
+  #userChip{font-size:12px;background:rgba(255,255,255,.16);padding:5px 10px;border-radius:20px;cursor:pointer;display:none}
+
+  /* Nav */
+  nav.tabs{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:66px;z-index:900}
+  nav.tabs .wrap{display:flex;gap:2px;overflow-x:auto}
+  .tab{padding:13px 16px;font-size:14px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none}
+  .tab:hover{color:var(--teal)}
+  .tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+  .tab .ic{margin-right:6px}
+
+  main{padding:22px 0 60px}
+  .view{display:none;animation:fade .25s ease}
+  .view.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* Cards & general */
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
+  .card h2{font-size:18px;color:var(--navy);margin-bottom:4px}
+  .card .sub{color:var(--muted);font-size:13px;margin-bottom:16px}
+  h2 .em{color:var(--teal)}
+  .hero{background:linear-gradient(135deg,#fff,var(--green));border-left:5px solid var(--teal)}
+
+  label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px}
+  label .req{color:var(--tolak)}
+  input,select,textarea{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;background:#fff;transition:border .15s,box-shadow .15s}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(31,122,109,.12)}
+  textarea{resize:vertical;min-height:90px}
+  .hint{font-size:12px;color:var(--muted);margin-top:5px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:140px}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:12px 18px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:transform .05s,filter .15s}
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{background:var(--teal);color:#fff}
+  .btn-primary:hover{filter:brightness(1.07)}
+  .btn-ghost{background:#eef2f1;color:var(--ink)}
+  .btn-sm{padding:7px 12px;font-size:13px;border-radius:8px}
+  .btn-block{width:100%}
+  .btn[disabled]{opacity:.6;cursor:not-allowed}
+
+  /* Map */
+  .map{height:260px;border-radius:12px;border:1px solid var(--line);margin-top:6px}
+  #dashMap{height:340px}
+
+  /* Foto */
+  .filebox{border:2px dashed var(--line);border-radius:12px;padding:18px;text-align:center;cursor:pointer;background:#fafbfb}
+  .filebox:hover{border-color:var(--teal);background:var(--green)}
+  .filebox .ic{font-size:26px}
+  .preview{margin-top:10px;max-height:200px;border-radius:10px;display:none}
+
+  /* Status chip */
+  .chip{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700;color:#fff}
+  .s-Baru{background:var(--baru)} .s-Diverifikasi{background:var(--verif)}
+  .s-Diproses{background:var(--proses)} .s-Selesai{background:var(--selesai)} .s-Ditolak{background:var(--tolak)}
+
+  /* Stat cards */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .stat .n{font-size:30px;font-weight:800;color:var(--navy);line-height:1}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:5px;font-weight:600}
+  .stat .bar{position:absolute;left:0;top:0;bottom:0;width:5px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+
+  /* Table */
+  .tbl-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:var(--green);color:var(--navy);font-weight:700;font-size:12.5px;white-space:nowrap}
+  tr:hover td{background:#fafbfb}
+  .muted{color:var(--muted)}
+  .mono{font-family:'Consolas',monospace;font-weight:700;color:var(--teal)}
+
+  /* Timeline */
+  .timeline{margin-top:12px;border-left:2px solid var(--green2);padding-left:16px}
+  .tl-item{position:relative;padding:0 0 16px}
+  .tl-item:before{content:'';position:absolute;left:-23px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--teal);border:2px solid #fff}
+  .tl-item .t{font-size:12px;color:var(--muted)}
+
+  /* Modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:2000;padding:16px}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+  .modal .mh{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+  .modal .mh h3{font-size:16px;color:var(--navy)}
+  .modal .mb{padding:20px}
+  .x{cursor:pointer;font-size:22px;color:var(--muted);background:none;border:none;line-height:1}
+
+  /* Toast */
+  #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--navy);color:#fff;padding:13px 20px;border-radius:10px;font-size:14px;font-weight:600;z-index:3000;transition:transform .3s;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:90vw}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast.err{background:var(--tolak)} #toast.ok{background:var(--selesai)}
+
+  .ticket-box{background:var(--green);border:1px dashed var(--teal);border-radius:12px;padding:18px;text-align:center;margin-top:14px}
+  .ticket-box .num{font-size:24px;font-weight:800;color:var(--teal);font-family:'Consolas',monospace;letter-spacing:1px}
+  .empty{text-align:center;color:var(--muted);padding:40px 10px;font-size:14px}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .filters>*{flex:1;min-width:130px}
+  .pill{font-size:11px;background:var(--green);color:var(--teal-d);padding:3px 9px;border-radius:20px;font-weight:600}
+  footer{text-align:center;color:var(--muted);font-size:12px;padding:24px 16px 40px}
+  .login-wrap{max-width:400px;margin:20px auto}
+  .demo-accts{font-size:12px;background:var(--green);border-radius:10px;padding:12px;margin-top:14px;color:var(--teal-d)}
+  .demo-accts b{color:var(--navy)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="logo"><img src="logo.png" alt="Logo DLH Kepahiang" onerror="this.parentNode.textContent='🌿'" /></div>
+    <div class="brand">
+      <h1>DLH Smart Lapor</h1>
+      <p>Dinas Lingkungan Hidup Kab. Kepahiang</p>
+    </div>
+    <div class="spacer"></div>
+    <span class="badge-mode" id="modeBadge">MODE DEMO</span>
+    <span id="userChip"></span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="wrap">
+    <button class="tab active" data-view="lapor"><span class="ic">📝</span>Buat Laporan</button>
+    <button class="tab" data-view="cek"><span class="ic">🔍</span>Cek Status</button>
+    <button class="tab" data-view="dashboard"><span class="ic">📊</span>Dashboard</button>
+    <button class="tab" data-view="admin"><span class="ic">🔑</span>Petugas / Admin</button>
+  </div>
+</nav>
+
+<main>
+  <div class="wrap">
+
+    <!-- ============ VIEW: LAPOR ============ -->
+    <section class="view active" id="view-lapor">
+      <div class="card hero">
+        <h2>Laporkan Masalah <span class="em">Sampah & Lingkungan</span></h2>
+        <p class="sub">Bantu wujudkan Kepahiang yang bersih, hijau, dan berkelanjutan. Isi formulir singkat berikut — lokasi akan tercatat otomatis.</p>
+      </div>
+      <div class="card">
+        <form id="formLapor">
+          <label>Jenis Permasalahan <span class="req">*</span></label>
+          <select id="f_kategori" required></select>
+
+          <label>Deskripsi Masalah <span class="req">*</span></label>
+          <textarea id="f_deskripsi" placeholder="Contoh: Tumpukan sampah liar di pinggir Jalan Merdeka, sudah menumpuk 3 hari dan berbau." required></textarea>
+
+          <label>Foto Bukti</label>
+          <div class="filebox" id="filebox">
+            <div class="ic">📷</div>
+            <div style="font-weight:600;font-size:14px;margin-top:4px">Ketuk untuk ambil / unggah foto</div>
+            <div class="hint">JPG/PNG, maks ~5MB</div>
+            <input type="file" id="f_foto" accept="image/*" capture="environment" hidden />
+          </div>
+          <img class="preview" id="preview" alt="pratinjau foto" />
+
+          <label>Lokasi Kejadian <span class="req">*</span></label>
+          <div class="row" style="margin-bottom:6px">
+            <button type="button" class="btn btn-ghost btn-sm" id="btnGPS">📍 Gunakan Lokasi Saya</button>
+            <div class="hint" id="locStatus" style="align-self:center;flex:2">Geser pin pada peta untuk menandai titik.</div>
+          </div>
+          <div id="lapMap" class="map"></div>
+
+          <div class="row" style="margin-top:14px">
+            <div><label>Nama Pelapor</label><input id="f_nama" placeholder="Opsional / Anonim" /></div>
+            <div><label>Kontak (HP/WA)</label><input id="f_kontak" placeholder="Opsional" /></div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top:20px" id="btnKirim">Kirim Laporan</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: CEK STATUS ============ -->
+    <section class="view" id="view-cek">
+      <div class="card">
+        <h2>Cek Status <span class="em">Laporan</span></h2>
+        <p class="sub">Masukkan nomor tiket yang Anda terima saat mengirim laporan.</p>
+        <div class="row">
+          <input id="cekTiket" placeholder="mis. LAPOR-20260704-1234" style="flex:3;text-transform:uppercase" />
+          <button class="btn btn-primary" id="btnCek" style="flex:1">Cari</button>
+        </div>
+        <div id="cekResult"></div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: DASHBOARD ============ -->
+    <section class="view" id="view-dashboard">
+      <div class="card hero">
+        <h2>Dashboard <span class="em">Monitoring</span></h2>
+        <p class="sub">Pantauan real-time jumlah laporan, sebaran lokasi, jenis permasalahan, dan waktu penyelesaian.</p>
+      </div>
+      <div class="stats" id="statCards"></div>
+      <div class="grid2">
+        <div class="card"><h2 style="font-size:15px">Laporan per Kategori</h2><canvas id="chartKat" height="220"></canvas></div>
+        <div class="card"><h2 style="font-size:15px">Tren Laporan (6 Bulan)</h2><canvas id="chartTren" height="220"></canvas></div>
+      </div>
+      <div class="card"><h2 style="font-size:15px">Peta Sebaran Laporan</h2><div id="dashMap" class="map"></div></div>
+      <div class="card">
+        <h2 style="font-size:15px">Laporan Terbaru</h2>
+        <div class="tbl-wrap"><table id="dashTable"></table></div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: ADMIN ============ -->
+    <section class="view" id="view-admin">
+      <!-- login -->
+      <div id="loginBox" class="login-wrap">
+        <div class="card">
+          <h2>Masuk <span class="em">Petugas / Admin</span></h2>
+          <p class="sub">Khusus petugas DLH. Login untuk menindaklanjuti laporan.</p>
+          <form id="formLogin">
+            <label>Email</label>
+            <input id="l_email" type="email" placeholder="nama@dlh.go.id" required />
+            <label>Kata Sandi</label>
+            <input id="l_pass" type="password" placeholder="••••••••" required />
+            <button class="btn btn-primary btn-block" style="margin-top:16px">Masuk</button>
+          </form>
+          <div class="demo-accts" id="demoAccts">
+            <b>Akun demo:</b><br/>
+            admin@dlh.go.id / admin123<br/>
+            petugas@dlh.go.id / petugas123<br/>
+            pimpinan@dlh.go.id / pimpinan123
+          </div>
+        </div>
+      </div>
+
+      <!-- panel -->
+      <div id="adminPanel" style="display:none">
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div>
+            <h2 style="font-size:16px;margin:0" id="adminHello"></h2>
+            <p class="sub" style="margin:0" id="adminRole"></p>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" id="btnExport">⬇️ Ekspor CSV</button>
+            <button class="btn btn-ghost btn-sm" id="btnKategori">🏷️ Kelola Kategori</button>
+            <button class="btn btn-ghost btn-sm" id="btnLogout">Keluar</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="filters">
+            <input id="fltQ" placeholder="🔍 Cari tiket / kata kunci..." />
+            <select id="fltStatus"><option value="">Semua Status</option></select>
+            <select id="fltKat"><option value="">Semua Kategori</option></select>
+          </div>
+          <div class="tbl-wrap"><table id="adminTable"></table></div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div>© 2026 Dinas Lingkungan Hidup Kabupaten Kepahiang — DLH Smart Lapor</div>
+  <div style="margin-top:4px">Mewujudkan Kepahiang yang Bersih, Hijau & Berkelanjutan 🌿</div>
+</footer>
+
+<!-- Modal & Toast -->
+<div class="modal-bg" id="modalBg"><div class="modal"><div class="mh"><h3 id="modalTitle"></h3><button class="x" id="modalX">×</button></div><div class="mb" id="modalBody"></div></div></div>
+<div id="toast"></div>
+
+<script src="config.js"></script>
+<script src="db.js"></script>
+<script defer src="app.js"></script>
+</body>
+</html>
