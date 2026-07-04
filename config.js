@@ -13,8 +13,8 @@
 
 const CONFIG = {
   // --- Isi dua baris ini untuk MODE PRODUKSI (Supabase) ---
-  SUPABASE_URL: "",        // contoh: "https://xxxxxxxx.supabase.co"
-  SUPABASE_ANON_KEY: "",   // contoh: "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
+  SUPABASE_URL: "https://zuoxkzvenesetorghsqf.supabase.co",        // contoh: "https://xxxxxxxx.supabase.co"
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1b3hrenZlbmVzZXRvcmdoc3FmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNTEzNTUsImV4cCI6MjA5ODcyNzM1NX0.0vAx8mU_1a_97YwlhggaEeM5Ybxn3fKit5S9YXUgHic",   // contoh: "eyJhbGciOiJIUzI1NiIsInR5cCI6..."
 
   // --- Identitas aplikasi ---
   APP_NAME: "DLH Smart Lapor",
